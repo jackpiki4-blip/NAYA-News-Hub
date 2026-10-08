@@ -1,0 +1,48 @@
+name: Build NAYA News APK
+
+on:
+workflow_dispatch:
+push:
+
+jobs:
+build:
+runs-on: ubuntu-latest
+steps:
+- name: Checkout repository
+uses: actions/checkout@v4
+
+  - name: Set up Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
+
+  - name: Check project files
+    run: |
+      ls -la
+      find . -maxdepth 4 -type f \( -name 'settings.gradle' -o -name 'settings.gradle.kts' -o -name 'gradlew' -o -name '*.zip' \)
+
+  - name: Stop if project is not extracted
+    run: |
+      if [ ! -f settings.gradle ] && [ ! -f settings.gradle.kts ]; then
+        echo "Android project files are not in the repository root."
+        echo "The project ZIP must be extracted before building."
+        exit 1
+      fi
+
+  - name: Build APK
+    run: |
+      if [ -f gradlew ]; then
+        chmod +x gradlew
+        ./gradlew assembleDebug
+      else
+        echo "Gradle wrapper is missing."
+        exit 1
+      fi
+
+  - name: Upload APK
+    if: success()
+    uses: actions/upload-artifact@v4
+    with:
+      name: NAYA-News-APK
+      path: '**/build/outputs/apk/debug/*.apk'
